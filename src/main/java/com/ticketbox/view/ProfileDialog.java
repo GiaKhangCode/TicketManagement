@@ -183,7 +183,7 @@ public class ProfileDialog extends JDialog {
             
             // Try to repaint parent title if it's MainFrame
             if (parentFrame instanceof MainFrame) {
-                ((MainFrame) parentFrame).setTitle("Ticketbox - Hệ thống vé sự kiện | " + newName);
+                ((MainFrame) parentFrame).setTitle("Ve'ryGood - Hệ thống vé sự kiện | " + newName);
             }
             dispose();
         } else {

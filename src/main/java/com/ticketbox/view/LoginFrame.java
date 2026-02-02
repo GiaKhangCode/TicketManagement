@@ -14,14 +14,26 @@ public class LoginFrame extends JFrame {
     private JPasswordField txtPassword;
     private JButton btnLogin;
     private JButton btnRegister;
+    private Image loginImage;
 
     public LoginFrame(AuthController controller) {
         this.controller = controller;
+        // Load Image Async
+        new Thread(() -> {
+            try {
+                java.net.URL url = java.net.URI.create("https://github.com/GiaKhangCode/celestial_perspective/blob/main/login.jpg?raw=true").toURL();
+                loginImage = javax.imageio.ImageIO.read(url);
+                SwingUtilities.invokeLater(this::repaint);
+            } catch (Exception e) {
+                System.err.println("Could not load login image: " + e.getMessage());
+            }
+        }).start();
+        
         initComponents();
     }
 
     private void initComponents() {
-        setTitle("Ticketbox - Đăng nhập");
+        setTitle("Ve'ryGood - Đăng nhập");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(900, 550);
         setLocationRelativeTo(null);
@@ -34,14 +46,54 @@ public class LoginFrame extends JFrame {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-                int w = getWidth();
-                int h = getHeight();
-                // Gradient Background: Dark Zinc -> Cyan Accent
-                GradientPaint gp = new GradientPaint(0, 0, new Color(24, 24, 27), w, h, new Color(8, 145, 178));
-                g2d.setPaint(gp);
-                g2d.fillRect(0, 0, w, h);
+                if (loginImage != null) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                    g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    
+                    int panelWidth = getWidth();
+                    int panelHeight = getHeight();
+                    int imgWidth = loginImage.getWidth(this);
+                    int imgHeight = loginImage.getHeight(this);
+                    
+                    if (imgWidth > 0 && imgHeight > 0) {
+                        double panelAspect = (double) panelWidth / panelHeight;
+                        double imgAspect = (double) imgWidth / imgHeight;
+                        
+                        int drawWidth, drawHeight;
+                        int x, y;
+                        
+                        if (panelAspect > imgAspect) {
+                            // Panel is wider than image -> fit width, crop height (or scale up)
+                            drawWidth = panelWidth;
+                            drawHeight = (int) (panelWidth / imgAspect);
+                            x = 0;
+                            y = (panelHeight - drawHeight) / 2;
+                        } else {
+                            // Panel is taller than image -> fit height, crop width (or scale up)
+                            drawHeight = panelHeight;
+                            drawWidth = (int) (panelHeight * imgAspect);
+                            x = (panelWidth - drawWidth) / 2;
+                            y = 0;
+                        }
+                        
+                        g2d.drawImage(loginImage, x, y, drawWidth, drawHeight, this);
+                    }
+                    
+                    // Add semi-transparent overlay to ensure text readability (if any text is added later)
+                    // g2d.setColor(new Color(0, 0, 0, 50)); // Reduced overlay opacity as text is removed
+                    // g2d.fillRect(0, 0, panelWidth, panelHeight);
+                } else {
+                    Graphics2D g2d = (Graphics2D) g;
+                    g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                    int w = getWidth();
+                    int h = getHeight();
+                    // Gradient Background: Dark Zinc -> Cyan Accent
+                    GradientPaint gp = new GradientPaint(0, 0, new Color(24, 24, 27), w, h, new Color(8, 145, 178));
+                    g2d.setPaint(gp);
+                    g2d.fillRect(0, 0, w, h);
+                }
             }
         };
         leftPanel.setLayout(new GridBagLayout());
@@ -51,19 +103,16 @@ public class LoginFrame extends JFrame {
         brandContent.setOpaque(false);
         brandContent.setLayout(new BoxLayout(brandContent, BoxLayout.Y_AXIS));
         
-        JLabel lblLogo = new JLabel("Ticketbox");
-        lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 48));
-        lblLogo.setForeground(Color.WHITE);
-        lblLogo.setAlignmentX(CENTER_ALIGNMENT);
+        //JLabel titleLabel = new JLabel("Ve'ryGood");
+        //titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 48));
+        //titleLabel.setForeground(Color.WHITE);
+        //titleLabel.setAlignmentX(CENTER_ALIGNMENT);
         
-        JLabel lblSlogan = new JLabel("Thế giới giải trí trong tầm tay");
-        lblSlogan.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-        lblSlogan.setForeground(new Color(255, 255, 255, 200));
-        lblSlogan.setAlignmentX(CENTER_ALIGNMENT);
         
-        brandContent.add(lblLogo);
-        brandContent.add(Box.createVerticalStrut(10));
-        brandContent.add(lblSlogan);
+        //brandContent.add(titleLabel);
+        // brandContent.add(Box.createVerticalStrut(10)); // Removed gap
+        // brandContent.add(lblSlogan); // Removed slogan
+
         
         leftPanel.add(brandContent);
         

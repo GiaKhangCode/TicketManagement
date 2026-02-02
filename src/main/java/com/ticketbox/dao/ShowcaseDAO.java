@@ -79,6 +79,8 @@ public class ShowcaseDAO {
                             
                             // Essential: Load Schedules
                             e.setSchedules(new EventScheduleDAO().getByEventId(e.getId()));
+                            // Essential: Load Ticket Types (for price)
+                            e.setTicketTypes(new TicketTypeDAO().getTicketTypesByEvent(e.getId()));
                             
                             s.addEvent(e);
                         }

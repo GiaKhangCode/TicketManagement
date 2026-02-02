@@ -26,7 +26,7 @@ public class RegisterFrame extends JFrame {
     }
 
     private void initComponents() {
-        setTitle("Ticketbox - Đăng ký tài khoản");
+        setTitle("Ve'ryGood - Đăng ký tài khoản");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(950, 650);
         setLocationRelativeTo(null);

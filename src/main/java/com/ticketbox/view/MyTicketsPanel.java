@@ -16,11 +16,15 @@ import javax.swing.border.EmptyBorder;
 public class MyTicketsPanel extends JPanel {
     private User user;
     private BookingDAO bookingDAO;
+    private com.ticketbox.dao.ReviewDAO reviewDAO; // Added ReviewDAO
+    private com.ticketbox.dao.EventDAO eventDAO; // For fetching event details
     private JPanel listPanel;
 
     public MyTicketsPanel(User user) {
         this.user = user;
         this.bookingDAO = new BookingDAO();
+        this.reviewDAO = new com.ticketbox.dao.ReviewDAO();
+        this.eventDAO = new com.ticketbox.dao.EventDAO();
         initComponents();
         loadData();
     }
@@ -165,6 +169,47 @@ public class MyTicketsPanel extends JPanel {
         }
         
         rightInfo.add(lblStatus);
+        
+        // Review Button (Only if Success/Confirmed)
+        if ("CONFIRMED".equalsIgnoreCase(booking.getStatus()) || "SUCCESS".equalsIgnoreCase(booking.getStatus())) {
+            // Check if already reviewed?
+            // Need event ID. Booking -> Schedule -> Event.
+            // But we don't have eventId handy here easily without fetching.
+            // Let's postpone check to click or do async load? 
+            // For UI responsiveness, let's just add button and check state inside action or lightweight check.
+            // Ideally, we should fetch Event with Booking or use EventDAO.
+            
+            // We can fetch event now since we have booking.scheduleId
+            com.ticketbox.model.Event evt = eventDAO.getEventByScheduleId(booking.getScheduleId());
+            if (evt != null) {
+                boolean hasReviewed = reviewDAO.hasUserReviewed(user.getId(), evt.getId());
+                
+                JButton btnReview = new JButton(hasReviewed ? "Đã đánh giá" : "Đánh giá");
+                btnReview.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                btnReview.setBackground(hasReviewed ? ThemeColor.BG_MAIN : ThemeColor.ACCENT);
+                btnReview.setForeground(hasReviewed ? ThemeColor.TEXT_SECONDARY : Color.WHITE);
+                btnReview.setEnabled(!hasReviewed);
+                
+                if (!hasReviewed) {
+                    btnReview.addActionListener(e -> {
+                        // Stop propagation to card click
+                        // Use ReviewDialog
+                        Window win = SwingUtilities.getWindowAncestor(this);
+                        ReviewDialog dialog = new ReviewDialog(win, user, evt);
+                        dialog.setVisible(true);
+                        // Reload data to update button state
+                        loadData();
+                    });
+                     // Prevent card click when clicking button? 
+                     // Since button captures click, it should be fine.
+                }
+                
+                GridBagConstraints gbc = new GridBagConstraints();
+                gbc.gridy = 1;
+                gbc.insets = new Insets(5, 0, 0, 0);
+                rightInfo.add(btnReview, gbc);
+            }
+        }
         
         card.add(leftInfo, BorderLayout.WEST);
         card.add(centerInfo, BorderLayout.CENTER);

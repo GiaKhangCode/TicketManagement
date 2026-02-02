@@ -36,7 +36,7 @@ public class MainFrame extends JFrame {
     }
 
     private void initComponents() {
-        setTitle("Ticketbox - Hệ thống vé sự kiện | " + loggedInUser.getFullName());
+        setTitle("Ve'ryGood - Hệ thống vé sự kiện | " + (loggedInUser != null ? loggedInUser.getFullName() : "Guest"));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1100, 700);
         setLocationRelativeTo(null);
@@ -52,7 +52,7 @@ public class MainFrame extends JFrame {
         sidebar.setBorder(new EmptyBorder(20, 15, 20, 15));
         
         // Sidebar Title / Logo Area
-        JLabel lblBrand = new JLabel("TICKETBOX", SwingConstants.CENTER);
+        JLabel lblBrand = new JLabel("Ve'ryGood", SwingConstants.CENTER);
         lblBrand.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblBrand.setForeground(ThemeColor.ACCENT); // Use new Accent Color
         lblBrand.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -74,7 +74,9 @@ public class MainFrame extends JFrame {
         }
         
         if ("ADMIN".equals(loggedInUser.getRole())) {
-             addMenuButton(sidebar, "Duyệt Sự kiện", "ADMIN_EVENTS");
+             addMenuButton(sidebar, "Quản lý Sự kiện", "ADMIN_EVENTS");
+             addMenuButton(sidebar, "Quản lý Người dùng", "ADMIN_USERS");
+             addMenuButton(sidebar, "Quản lý Showcase", "ADMIN_SHOWCASE");
         }
 
         sidebar.add(javax.swing.Box.createVerticalGlue());
@@ -103,7 +105,9 @@ public class MainFrame extends JFrame {
         }
         
         if ("ADMIN".equals(loggedInUser.getRole())) {
-            cards.add(new AdminPanel(), "ADMIN_EVENTS");
+            cards.add(new AdminEventPanel(), "ADMIN_EVENTS");
+            cards.add(new AdminUserPanel(), "ADMIN_USERS");
+            cards.add(new AdminShowcasePanel(), "ADMIN_SHOWCASE");
         }
         
         add(cards, BorderLayout.CENTER);
@@ -173,8 +177,12 @@ public class MainFrame extends JFrame {
                      ((OrganizerPanel) comp).loadData();
                 } else if (comp instanceof StatisticsPanel) {
                      ((StatisticsPanel) comp).loadData();
-                } else if (comp instanceof AdminPanel) {
-                     ((AdminPanel) comp).loadData();
+                } else if (comp instanceof AdminEventPanel) {
+                     ((AdminEventPanel) comp).loadData();
+                } else if (comp instanceof AdminUserPanel) {
+                     ((AdminUserPanel) comp).loadData();
+                } else if (comp instanceof AdminShowcasePanel) {
+                     ((AdminShowcasePanel) comp).loadData();
                 }
             }
         });

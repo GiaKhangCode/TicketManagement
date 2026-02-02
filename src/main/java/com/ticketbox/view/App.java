@@ -15,7 +15,7 @@ public class App {
             // Setup macOS style light theme
             com.formdev.flatlaf.themes.FlatMacDarkLaf.setup();
             
-            // Global UI Settings
+            // Global UI Settingshttps://github.com/GiaKhangCode/celestial_perspective/blob/main/login.jpg?raw=true
             UIManager.put("Button.arc", 12);
             UIManager.put("Component.arc", 12);
             UIManager.put("TextComponent.arc", 12);

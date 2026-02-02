@@ -97,6 +97,21 @@ public class EventDAO {
         }
         return events;
     }
+    public List<Event> getAllEvents() {
+        List<Event> events = new ArrayList<>();
+        String sql = "SELECT * FROM EVENTS ORDER BY START_TIME DESC";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                events.add(mapResultSetToEvent(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return events;
+    }
+
     public boolean updateEvent(Event event) {
         String sql = "UPDATE EVENTS SET NAME=?, DESCRIPTION=?, LOCATION=?, START_TIME=?, END_TIME=?, IMAGE_URL=?, STATUS=?, CATEGORY=? WHERE ID=?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -207,6 +222,23 @@ public class EventDAO {
         }
         return events;
     }
+
+    public Event getEventByScheduleId(int scheduleId) {
+        String sql = "SELECT E.* FROM EVENTS E JOIN EVENT_SCHEDULES S ON E.ID = S.EVENT_ID WHERE S.ID = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, scheduleId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToEvent(rs);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
     
     // Helper method to map ResultSet to Event object and populate schedules
     private Event mapResultSetToEvent(ResultSet rs) throws SQLException {
@@ -226,6 +258,9 @@ public class EventDAO {
         
         // Populate schedules
         e.setSchedules(scheduleDAO.getByEventId(e.getId()));
+        
+        // Populate ticket types (for price display)
+        e.setTicketTypes(ticketTypeDAO.getTicketTypesByEvent(e.getId()));
         
         return e;
     }

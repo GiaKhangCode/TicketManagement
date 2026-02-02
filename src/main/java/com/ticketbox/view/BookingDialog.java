@@ -143,6 +143,24 @@ public class BookingDialog extends JDialog {
         scrollDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
         detailsPanel.add(scrollDesc);
         
+        detailsPanel.add(Box.createVerticalStrut(15));
+        
+        // View Reviews Button
+        JButton btnViewReviews = new JButton("Xem đánh giá từ khách hàng");
+        btnViewReviews.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        btnViewReviews.setForeground(ThemeColor.ACCENT);
+        btnViewReviews.setContentAreaFilled(false);
+        btnViewReviews.setBorderPainted(false);
+        btnViewReviews.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnViewReviews.setHorizontalAlignment(SwingConstants.LEFT);
+        btnViewReviews.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        btnViewReviews.addActionListener(e -> {
+            new ReviewListDialog(this, event).setVisible(true);
+        });
+        
+        detailsPanel.add(btnViewReviews);
+        
         splitPane.setLeftComponent(detailsPanel);
         
         // --- RIGHT: Booking Panel ---

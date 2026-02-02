@@ -46,6 +46,11 @@ public class User {
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
     
+    private boolean isLocked;
+    public boolean isLocked() { return isLocked; }
+    public void setLocked(boolean isLocked) { this.isLocked = isLocked; }
+    
+    
     @Override
     public String toString() {
         return "User{" + "username=" + username + ", role=" + role + '}';

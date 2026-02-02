@@ -142,4 +142,74 @@ public class UserDAO {
             return false;
         }
     }
+    
+    // --- Admin Management Methods ---
+    
+    public java.util.List<User> getAllUsers() {
+        java.util.List<User> users = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM USERS ORDER BY ID DESC";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            
+            while (rs.next()) {
+                User user = new User();
+                user.setId(rs.getInt("ID"));
+                user.setUsername(rs.getString("USERNAME"));
+                // user.setPassword(rs.getString("PASSWORD")); // Don't expose password
+                user.setEmail(rs.getString("EMAIL"));
+                user.setFullName(rs.getString("FULL_NAME"));
+                user.setRole(rs.getString("ROLE"));
+                user.setCreatedAt(rs.getTimestamp("CREATED_AT"));
+                user.setLocked(rs.getInt("IS_LOCKED") == 1);
+                users.add(user);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return users;
+    }
+    
+    public boolean updateUserLockStatus(int userId, boolean isLocked) {
+        String sql = "UPDATE USERS SET IS_LOCKED = ? WHERE ID = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, isLocked ? 1 : 0);
+            pstmt.setInt(2, userId);
+            
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    public boolean deleteUser(int userId) {
+        String sql = "DELETE FROM USERS WHERE ID = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, userId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    public boolean updateUserRole(int userId, String newRole) {
+        String sql = "UPDATE USERS SET ROLE = ? WHERE ID = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, newRole);
+            pstmt.setInt(2, userId);
+            
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
