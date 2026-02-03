@@ -1,12 +1,16 @@
 package com.ticketbox.view;
 
 import com.ticketbox.dao.BookingDAO;
+import com.ticketbox.dao.SeatMapDAO; // New
 import com.ticketbox.dao.TicketTypeDAO;
 import com.ticketbox.model.Booking;
 import com.ticketbox.model.Event;
+import com.ticketbox.model.SeatMap; // New
+import com.ticketbox.model.SeatZone; // New
 import com.ticketbox.model.Ticket;
 import com.ticketbox.model.TicketType;
 import com.ticketbox.model.User;
+import com.ticketbox.view.component.StageCanvas; // New
 import com.ticketbox.util.ThemeColor;
 import java.awt.*;
 import java.util.ArrayList;
@@ -177,68 +181,97 @@ public class BookingDialog extends JDialog {
         rightHeader.add(lblBookingTitle);
         rightPanel.add(rightHeader, BorderLayout.NORTH);
         
-        // Ticket Types List (Reuse existing logic)
-        JPanel contentPanel = new JPanel(new GridBagLayout());
-        contentPanel.setBackground(ThemeColor.BG_MAIN);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 20)); // Adjust padding
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
         // Fetch types with availability for specific schedule
         availableTypes = ticketTypeDAO.getTicketTypesByEventAndSchedule(event.getId(), schedule.getId());
         
-        if (availableTypes.isEmpty()) {
-            JLabel lblEmpty = new JLabel("Sự kiện này chưa mở bán vé.");
-            lblEmpty.setForeground(ThemeColor.TEXT_SECONDARY);
-            contentPanel.add(lblEmpty);
+        SeatMapDAO seatMapDAO = new SeatMapDAO();
+        SeatMap seatMap = seatMapDAO.getSeatMap(event.getId());
+
+        // Container for either List or Map
+        JPanel centerContainer = new JPanel(new BorderLayout());
+        centerContainer.setBackground(ThemeColor.BG_MAIN);
+
+        if (seatMap != null && !seatMap.getZones().isEmpty()) {
+            // --- MAP VIEW MODE ---
+            StageCanvas canvas = new StageCanvas();
+            canvas.setEditable(false); // Read-only
+            canvas.setZones(seatMap.getZones());
+            canvas.setPreferredSize(new Dimension(800, 600)); // Ensure it has size
+            
+            JLabel lblInstruction = new JLabel("Chọn khu vực trên sơ đồ để xem giá và đặt vé", SwingConstants.CENTER);
+            lblInstruction.setForeground(ThemeColor.ACCENT);
+            lblInstruction.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+            centerContainer.add(lblInstruction, BorderLayout.NORTH);
+            
+            JScrollPane scrollCanvas = new JScrollPane(canvas);
+            centerContainer.add(scrollCanvas, BorderLayout.CENTER);
+            
+            // Handle Zone Click
+            canvas.setOnZoneClicked(zone -> showZoneBookingDialog(zone));
+            
         } else {
-            // Header Row
-            gbc.gridx = 0; gbc.gridy = 0; 
-            addHeaderLabel(contentPanel, gbc, "Loại vé");
-            
-            gbc.gridx = 1; gbc.gridy = 0; 
-            addHeaderLabel(contentPanel, gbc, "Giá");
-            
-            gbc.gridx = 2; gbc.gridy = 0; 
-            addHeaderLabel(contentPanel, gbc, "Còn lại");
-            
-            gbc.gridx = 3; gbc.gridy = 0; 
-            addHeaderLabel(contentPanel, gbc, "Số lượng");
-            
-            int row = 1;
-            for (TicketType type : availableTypes) {
-                gbc.gridx = 0; gbc.gridy = row; 
-                JLabel lblTypeName = new JLabel(type.getName());
-                lblTypeName.setFont(new Font("Segoe UI", Font.BOLD, 14));
-                lblTypeName.setForeground(ThemeColor.TEXT_PRIMARY);
-                contentPanel.add(lblTypeName, gbc);
+            // --- CLASSIC LIST VIEW MODE ---
+            if (availableTypes.isEmpty()) {
+                JLabel lblEmpty = new JLabel("Sự kiện này chưa mở bán vé.");
+                lblEmpty.setForeground(ThemeColor.TEXT_SECONDARY);
+                centerContainer.add(lblEmpty, BorderLayout.CENTER);
+            } else {
+                JPanel contentPanel = new JPanel(new GridBagLayout());
+                contentPanel.setBackground(ThemeColor.BG_MAIN);
+                contentPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 20));
                 
-                gbc.gridx = 1; gbc.gridy = row;
-                JLabel lblPrice = new JLabel(String.format("%,.0f VNĐ", type.getPrice()));
-                lblPrice.setForeground(ThemeColor.PRIMARY);
-                contentPanel.add(lblPrice, gbc);
+                GridBagConstraints gbc = new GridBagConstraints();
+                gbc.insets = new Insets(10, 10, 10, 10);
+                gbc.fill = GridBagConstraints.HORIZONTAL;
                 
-                gbc.gridx = 2; gbc.gridy = row;
-                JLabel lblQty = new JLabel(String.valueOf(type.getAvailableQuantity()));
-                lblQty.setForeground(ThemeColor.TEXT_SECONDARY);
-                contentPanel.add(lblQty, gbc);
+                 // Header Row
+                gbc.gridx = 0; gbc.gridy = 0; 
+                addHeaderLabel(contentPanel, gbc, "Loại vé");
                 
-                gbc.gridx = 3; gbc.gridy = row;
-                JSpinner spinner = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
-                spinner.addChangeListener(e -> updateTotal());
-                quantitySpinners.put(type.getId(), spinner);
-                contentPanel.add(spinner, gbc);
+                gbc.gridx = 1; gbc.gridy = 0; 
+                addHeaderLabel(contentPanel, gbc, "Giá");
                 
-                row++;
+                gbc.gridx = 2; gbc.gridy = 0; 
+                addHeaderLabel(contentPanel, gbc, "Còn lại");
+                
+                gbc.gridx = 3; gbc.gridy = 0; 
+                addHeaderLabel(contentPanel, gbc, "Số lượng");
+                
+                int row = 1;
+                for (TicketType type : availableTypes) {
+                    gbc.gridx = 0; gbc.gridy = row; 
+                    JLabel lblTypeName = new JLabel(type.getName());
+                    lblTypeName.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                    lblTypeName.setForeground(ThemeColor.TEXT_PRIMARY);
+                    contentPanel.add(lblTypeName, gbc);
+                    
+                    gbc.gridx = 1; gbc.gridy = row;
+                    JLabel lblPrice = new JLabel(String.format("%,.0f VNĐ", type.getPrice()));
+                    lblPrice.setForeground(ThemeColor.PRIMARY);
+                    contentPanel.add(lblPrice, gbc);
+                    
+                    gbc.gridx = 2; gbc.gridy = row;
+                    JLabel lblQty = new JLabel(String.valueOf(type.getAvailableQuantity()));
+                    lblQty.setForeground(ThemeColor.TEXT_SECONDARY);
+                    contentPanel.add(lblQty, gbc);
+                    
+                    gbc.gridx = 3; gbc.gridy = row;
+                    JSpinner spinner = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
+                    spinner.addChangeListener(e -> updateTotal());
+                    quantitySpinners.put(type.getId(), spinner);
+                    contentPanel.add(spinner, gbc);
+                    
+                    row++;
+                }
+                
+                // Classic List scroll holder
+                JScrollPane scrollTickets = new JScrollPane(contentPanel);
+                scrollTickets.setBorder(null);
+                centerContainer.add(scrollTickets, BorderLayout.CENTER);
             }
         }
         
-        // Wrap contentPanel in a ScrollPane for the right side too if many ticket types
-        JScrollPane scrollTickets = new JScrollPane(contentPanel);
-        scrollTickets.setBorder(null);
-        scrollTickets.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        rightPanel.add(scrollTickets, BorderLayout.CENTER);
+        rightPanel.add(centerContainer, BorderLayout.CENTER);
         
         // Footer (Total & Button) reused
         JPanel footerPanel = new JPanel(new BorderLayout());
@@ -289,12 +322,70 @@ public class BookingDialog extends JDialog {
     private void updateTotal() {
         double total = 0;
         for (TicketType type : availableTypes) {
-            int qty = (int) quantitySpinners.get(type.getId()).getValue();
-            total += qty * type.getPrice();
+            JSpinner spinner = quantitySpinners.get(type.getId());
+            if (spinner != null) {
+                int qty = (int) spinner.getValue();
+                total += qty * type.getPrice();
+            }
         }
         lblTotalAmount.setText(String.format("Tổng tiền: %,.0f VNĐ", total));
     }
     
+    private void showZoneBookingDialog(SeatZone zone) {
+        TicketType type = availableTypes.stream()
+                .filter(t -> t.getId() == zone.getTicketTypeId())
+                .findFirst()
+                .orElse(null);
+        
+        if (type == null) {
+            JOptionPane.showMessageDialog(this, "Khu vực này chưa được mở bán hoặc chưa gán loại vé.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // Check availability
+        if (type.getAvailableQuantity() <= 0) {
+             JOptionPane.showMessageDialog(this, "Khu vực này đã hết vé!", "Hết vé", JOptionPane.WARNING_MESSAGE);
+             return;
+        }
+        
+        // Create popup content
+        JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
+        panel.add(new JLabel("Khu vực: " + zone.getLabel()));
+        panel.add(new JLabel("Loại vé: " + type.getName()));
+        panel.add(new JLabel("Giá vé: " + String.format("%,.0f VNĐ", type.getPrice())));
+        panel.add(new JLabel("Còn lại: " + type.getAvailableQuantity() + " vé"));
+        
+        JSpinner spinQty = new JSpinner(new SpinnerNumberModel(1, 1, Math.min(10, type.getAvailableQuantity()), 1));
+        
+        // If we already have selected some, default to that? 
+        // Simpler: Just ask "Add how many?" and accumulate.
+        // But for consistency with existing Spinner map, we should sync.
+        
+        if (!quantitySpinners.containsKey(type.getId())) {
+            quantitySpinners.put(type.getId(), new JSpinner(new SpinnerNumberModel(0, 0, 10, 1)));
+        }
+        JSpinner existingSpinner = quantitySpinners.get(type.getId());
+        int currentVal = (int) existingSpinner.getValue();
+        spinQty.setValue(currentVal > 0 ? currentVal : 1);
+        
+        panel.add(new JLabel("Số lượng muốn mua:"));
+        panel.add(spinQty);
+        
+        int result = JOptionPane.showConfirmDialog(this, panel, "Đặt vé: " + zone.getLabel(), JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        
+        if (result == JOptionPane.OK_OPTION) {
+            int qty = (int) spinQty.getValue();
+            existingSpinner.setValue(qty);
+            updateTotal();
+            
+            // Optional: Provide instant feedback
+            if (qty > 0) {
+                // Flash message or update UI text?
+                // For now, the Total Amount updating at bottom is indication enough.
+            }
+        }
+    }
+
     private void processBooking() {
         if (user == null) {
              JOptionPane.showMessageDialog(this, "Vui lòng đăng nhập để mua vé!", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -306,6 +397,10 @@ public class BookingDialog extends JDialog {
         List<Ticket> tickets = new ArrayList<>();
         
         for (TicketType type : availableTypes) {
+            // Safety check for map mode where not all spinners might be in UI if we switched logic, 
+            // but we put them in map 'quantitySpinners' lazily in showZoneBookingDialog.
+            if (!quantitySpinners.containsKey(type.getId())) continue;
+            
             int qty = (int) quantitySpinners.get(type.getId()).getValue();
             if (qty > 0) {
                 if (qty > type.getAvailableQuantity()) {

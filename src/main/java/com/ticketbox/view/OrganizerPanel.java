@@ -57,18 +57,21 @@ public class OrganizerPanel extends JPanel {
         JButton btnEdit = createActionButton("Cập nhật", ThemeColor.BG_CARD, false);
         JButton btnDelete = createActionButton("Xóa", ThemeColor.BG_CARD, false);
         JButton btnTicketTypes = createActionButton("Quản lý vé", ThemeColor.BG_CARD, false);
+        JButton btnStageMap = createActionButton("Sơ đồ", ThemeColor.BG_CARD, false); // New Button
         JButton btnRefresh = createActionButton("Làm mới", ThemeColor.BG_CARD, false);
         
         btnAdd.addActionListener(e -> showAddEventDialog());
         btnEdit.addActionListener(e -> showEditEventDialog());
         btnDelete.addActionListener(e -> deleteEvent());
         btnTicketTypes.addActionListener(e -> showManageTicketTypesDialog());
+        btnStageMap.addActionListener(e -> showStageBuilderDialog()); // Action
         btnRefresh.addActionListener(e -> loadData());
         
         actionPanel.add(btnAdd);
         actionPanel.add(btnEdit);
         actionPanel.add(btnDelete);
         actionPanel.add(btnTicketTypes);
+        actionPanel.add(btnStageMap); // Add to UI
         actionPanel.add(btnRefresh);
         
         gbc.gridx = 1;
@@ -180,6 +183,18 @@ public class OrganizerPanel extends JPanel {
         
         Event event = currentEvents.get(selectedRow);
         ManageTicketTypesDialog dialog = new ManageTicketTypesDialog(SwingUtilities.getWindowAncestor(this), event);
+        dialog.setVisible(true);
+    }
+
+    private void showStageBuilderDialog() {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn sự kiện để thiết kế sơ đồ!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        Event event = currentEvents.get(selectedRow);
+        StageBuilderDialog dialog = new StageBuilderDialog(SwingUtilities.getWindowAncestor(this), event);
         dialog.setVisible(true);
     }
 }
