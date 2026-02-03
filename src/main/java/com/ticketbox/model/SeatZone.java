@@ -154,6 +154,16 @@ public class SeatZone {
         this.rotation = rotation;
     }
 
+    private int fontSize = 12; // New property for TEXT elements/Zones
+
+    public int getFontSize() {
+        return fontSize;
+    }
+
+    public void setFontSize(int fontSize) {
+        this.fontSize = fontSize;
+    }
+
     public SeatZone copy() {
         SeatZone newZone = new SeatZone();
         newZone.setId(java.util.UUID.randomUUID().toString()); // New ID
@@ -169,6 +179,7 @@ public class SeatZone {
         newZone.setArcAngle(this.arcAngle);
         newZone.setInnerRadiusRatio(this.innerRadiusRatio);
         newZone.setRotation(this.rotation);
+        newZone.setFontSize(this.fontSize);
         
         List<Point> newPoints = new ArrayList<>();
         for (Point p : this.polygonPoints) {

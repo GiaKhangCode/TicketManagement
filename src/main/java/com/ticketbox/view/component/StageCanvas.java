@@ -3,7 +3,7 @@ package com.ticketbox.view.component;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Cursor;
+
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -32,6 +32,7 @@ public class StageCanvas extends JPanel {
     private List<SeatZone> selectedZones = new ArrayList<>(); // Multi-selection support
     private SeatZone primarySelection; // The one showing properties (last selected)
     private int gridSize = 10;
+    private static final int SNAP_THRESHOLD = 15; // Pixel threshold for auto-snapping
     private boolean editable = true; // Default true for Builder
     
     // Drag/Resize state
@@ -39,12 +40,32 @@ public class StageCanvas extends JPanel {
     private boolean isResizing = false;
     private boolean isRotating = false;
     private boolean isSelectingBox = false; // Rubber band selection
-    private int dragOffsetX, dragOffsetY;
+    // private int dragOffsetX, dragOffsetY; // Unused
     private Point lastMousePos;
+    
+    private int defaultFontSize = 20;
+
+    public void setDefaultFontSize(int size) {
+        this.defaultFontSize = size;
+    }
+
+    // Helper to calculate text bounds using component metrics
+    public void recalculateTextBounds(SeatZone z) {
+        if (!"TEXT".equals(z.getShapeType())) return;
+        
+        Font f = new Font("Segoe UI", Font.BOLD, z.getFontSize());
+        FontMetrics fm = getFontMetrics(f);
+        if (fm != null) {
+            int w = fm.stringWidth(z.getLabel());
+            int h = fm.getHeight();
+            z.setWidth(w + 10); // Padding
+            z.setHeight(h);
+        }
+    }
     
     // Tools
     public enum ToolType {
-        SELECT, DRAW_RECT, DRAW_OVAL, DRAW_POLY, DRAW_SECTOR
+        SELECT, DRAW_RECT, DRAW_OVAL, DRAW_POLY, DRAW_SECTOR, DRAW_TEXT
     }
     private ToolType currentTool = ToolType.SELECT;
     
@@ -217,6 +238,10 @@ public class StageCanvas extends JPanel {
             clearSelection();
         }
         repaint();
+    }
+    
+    public ToolType getTool() {
+        return currentTool;
     }
 
     // Add single zone (for new creations)
@@ -440,6 +465,13 @@ public class StageCanvas extends JPanel {
                 else if (currentTool == ToolType.DRAW_SECTOR) g2.drawArc(x, y, w, h, 45, 90); // Preview default arc
                 else g2.drawRect(x, y, w, h);
             }
+        } else if (currentTool == ToolType.DRAW_TEXT) {
+            // Show cursor or text placeholder
+            if (dragCurrentPoint != null) {
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                g2.drawString("Text Here", dragCurrentPoint.x, dragCurrentPoint.y);
+            }
         } else if (currentTool == ToolType.DRAW_POLY && !currentPolyPoints.isEmpty()) {
             // Draw lines connecting points
             g2.setColor(Color.CYAN);
@@ -462,7 +494,9 @@ public class StageCanvas extends JPanel {
         g2.setColor(c);
         
         Shape shape = createShape(z);
-        g2.fill(shape);
+        if (!"TEXT".equals(z.getShapeType())) {
+             g2.fill(shape);
+        }
         
         boolean isSelected = selectedZones.contains(z);
         
@@ -470,33 +504,41 @@ public class StageCanvas extends JPanel {
         if (isSelected) {
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 10, new float[]{5}, 0));
+            g2.draw(shape);
         } else {
-            g2.setColor(c.darker());
-            g2.setStroke(new BasicStroke(1));
+            // Only draw border for non-TEXT items when not selected
+            if (!"TEXT".equals(z.getShapeType())) {
+                g2.setColor(c.darker());
+                g2.setStroke(new BasicStroke(1));
+                g2.draw(shape);
+            }
         }
-        g2.draw(shape);
         
-        // Label (Draw centered, not rotated for readability, or rotated?)
-        // Usually readability > rotation. We draw at center of bounds.
+        // Label or Text Content
         g2.setColor(isBright(c) ? Color.BLACK : Color.WHITE);
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        FontMetrics fm = g2.getFontMetrics();
-        Rectangle bounds = shape.getBounds();
-        int tx = bounds.x + (bounds.width - fm.stringWidth(z.getLabel())) / 2;
-        int ty = bounds.y + (bounds.height + fm.getAscent()) / 2 - 2;
-        g2.drawString(z.getLabel(), tx, ty);
+        
+        if ("TEXT".equals(z.getShapeType())) {
+             g2.setFont(new Font("Segoe UI", Font.BOLD, z.getFontSize()));
+             g2.setColor(c); // Text uses the zone color directly
+             g2.drawString(z.getLabel(), z.getX(), z.getY() + z.getFontSize()); 
+        } else {
+             g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+             FontMetrics fm = g2.getFontMetrics();
+             Rectangle bounds = shape.getBounds();
+             int tx = bounds.x + (bounds.width - fm.stringWidth(z.getLabel())) / 2;
+             int ty = bounds.y + (bounds.height + fm.getAscent()) / 2 - 2;
+             g2.drawString(z.getLabel(), tx, ty);
+        }
         
         // Resize Handle (if selected AND editable AND Rect/Oval AND No Rotation AND primary selection)
-        // Multi-resize simple: Only show handles for primary selection to avoid clutter? 
-        // Or show for all? Standard UX: Handles usually only on primary or bounding box.
-        // Let's show only for primarySelection for safety.
-        if (editable && isSelected && z == primarySelection && !"POLYGON".equals(z.getShapeType()) && z.getRotation() == 0) {
-            g2.setColor(Color.WHITE);
-            g2.setStroke(new BasicStroke(1));
-            int handleSize = 8;
-            g2.fillRect(bounds.x + bounds.width - handleSize, bounds.y + bounds.height - handleSize, handleSize, handleSize);
-            g2.setColor(Color.BLACK);
-            g2.drawRect(bounds.x + bounds.width - handleSize, bounds.y + bounds.height - handleSize, handleSize, handleSize);
+        if (editable && isSelected && z == primarySelection && !"POLYGON".equals(z.getShapeType()) && !"TEXT".equals(z.getShapeType()) && z.getRotation() == 0) {
+             Rectangle bounds = shape.getBounds(); // Re-get bounds in case needed
+             g2.setColor(Color.WHITE);
+             g2.setStroke(new BasicStroke(1));
+             int handleSize = 8;
+             g2.fillRect(bounds.x + bounds.width - handleSize, bounds.y + bounds.height - handleSize, handleSize, handleSize);
+             g2.setColor(Color.BLACK);
+             g2.drawRect(bounds.x + bounds.width - handleSize, bounds.y + bounds.height - handleSize, handleSize, handleSize);
         }
         
         // Rotation Handle (if selected AND editable AND primary)
@@ -552,6 +594,23 @@ public class StageCanvas extends JPanel {
         return knob;
     }
     
+    private Point getSnappedPoint(Point current, Point prev) {
+        if (prev == null) return current;
+        
+        int dx = Math.abs(current.x - prev.x);
+        int dy = Math.abs(current.y - prev.y);
+        
+        Point snapped = new Point(current);
+        
+        if (dx < SNAP_THRESHOLD) {
+            snapped.x = prev.x; // Snap vertical
+        } else if (dy < SNAP_THRESHOLD) {
+            snapped.y = prev.y; // Snap horizontal
+        }
+        
+        return snapped;
+    }
+
     private Shape createShape(SeatZone z) {
         Shape baseShape;
         if ("POLYGON".equals(z.getShapeType())) {
@@ -586,6 +645,7 @@ public class StageCanvas extends JPanel {
             area.subtract(new Area(inner));
             baseShape = area;
         } else {
+             // RECT, TEXT (TEXT now uses explicit bounds)
             baseShape = new Rectangle(z.getX(), z.getY(), z.getWidth(), z.getHeight());
         }
         
@@ -695,8 +755,12 @@ public class StageCanvas extends JPanel {
                     if (e.getClickCount() == 2) {
                         finishPolygon();
                     } else {
-                        currentPolyPoints.add(e.getPoint());
-                        dragCurrentPoint = e.getPoint(); 
+                        Point p = e.getPoint();
+                        if (!currentPolyPoints.isEmpty()) {
+                            p = getSnappedPoint(p, currentPolyPoints.get(currentPolyPoints.size() - 1));
+                        }
+                        currentPolyPoints.add(p);
+                        dragCurrentPoint = p; 
                         repaint();
                     }
                 }
@@ -791,6 +855,24 @@ public class StageCanvas extends JPanel {
             }
             dragStartPoint = null;
             setTool(ToolType.SELECT);
+        } else if (currentTool == ToolType.DRAW_TEXT) {
+             SeatZone z = new SeatZone();
+             z.setId(UUID.randomUUID().toString());
+             z.setShapeType("TEXT");
+             z.setX(e.getX());
+             z.setY(e.getY());
+             z.setLabel("Text");
+             z.setColorHex("#FFFFFF"); // Default White
+             z.setFontSize(defaultFontSize);
+             z.setTicketTypeId(0);
+             
+             // Calculate accurate bounds based on default font
+             recalculateTextBounds(z);
+             
+             zones.add(z);
+             selectZoneExclusive(z);
+             setTool(ToolType.SELECT); // Auto switch back
+             repaint();
         }
         isDragging = false;
         isResizing = false;
@@ -834,11 +916,17 @@ public class StageCanvas extends JPanel {
               else if (isResizing && primarySelection != null) {
                     int dx = e.getX() - lastMousePos.x;
                     int dy = e.getY() - lastMousePos.y;
-                    int newW = Math.max(20, primarySelection.getWidth() + dx);
-                    int newH = Math.max(20, primarySelection.getHeight() + dy);
-                    primarySelection.setWidth(newW);
-                    primarySelection.setHeight(newH);
-                    // Note: Resizing polygons currently complex, only moving supported well.
+                    
+                    // Apply resize to ALL selected zones (additive)
+                    for (SeatZone z : selectedZones) {
+                        if ("POLYGON".equals(z.getShapeType())) continue; // Skip complex shapes
+                        
+                        int newW = Math.max(20, z.getWidth() + dx);
+                        int newH = Math.max(20, z.getHeight() + dy);
+                        z.setWidth(newW);
+                        z.setHeight(newH);
+                    }
+                    
                     lastMousePos = e.getPoint();
                     repaint();
               }
@@ -869,7 +957,11 @@ public class StageCanvas extends JPanel {
     
     private void handleMouseMoved(MouseEvent e) {
         if (currentTool == ToolType.DRAW_POLY) {
-            dragCurrentPoint = e.getPoint();
+            Point p = e.getPoint();
+            if (!currentPolyPoints.isEmpty()) {
+                 p = getSnappedPoint(p, currentPolyPoints.get(currentPolyPoints.size() - 1));
+            }
+            dragCurrentPoint = p;
             repaint();
         }
     }

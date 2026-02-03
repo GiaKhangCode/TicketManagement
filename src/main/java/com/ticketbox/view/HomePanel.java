@@ -34,47 +34,10 @@ public class HomePanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(ThemeColor.BG_MAIN);
         
-        // --- 1. Hero Section / Banner ---
-        JPanel heroPanel = new JPanel();
-        heroPanel.setLayout(new BoxLayout(heroPanel, BoxLayout.Y_AXIS));
-        heroPanel.setBackground(ThemeColor.SIDEBAR); // Darker top
-        heroPanel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40)); 
-        
-        // --- 2. Search & Filter Bar ---
-        JPanel searchContainer = new JPanel();
-        searchContainer.setLayout(new BoxLayout(searchContainer, BoxLayout.Y_AXIS));
-        searchContainer.setOpaque(false);
-        searchContainer.setAlignmentX(CENTER_ALIGNMENT);
-        
-        // Search Row
-        JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        searchRow.setOpaque(false);
-        
-        txtSearch = new JTextField(30);
-        txtSearch.putClientProperty("JTextField.placeholderText", "Bạn tìm gì hôm nay?");
-        txtSearch.setPreferredSize(new Dimension(400, 45));
-        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtSearch.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(ThemeColor.SECONDARY, 1),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
-        
-        JButton btnSearch = new RoundedButton("Tìm kiếm", 10);
-        btnSearch.setBackground(ThemeColor.BG_CARD); 
-        btnSearch.setForeground(ThemeColor.TEXT_PRIMARY); 
-        btnSearch.setPreferredSize(new Dimension(100, 45));
-        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnSearch.addActionListener(e -> performSearch());
-        
-        searchRow.add(txtSearch);
-        searchRow.add(btnSearch);
-        
-        searchContainer.add(searchRow);
-        searchContainer.add(Box.createVerticalStrut(20));
-        
-        // Category Bar Row
+        // --- Category Bar Row (Moved from Search Container) ---
         JPanel categoryBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 10));
         categoryBar.setOpaque(false);
+        categoryBar.setBorder(new EmptyBorder(10, 0, 10, 0));
         
         String[] categories = { 
             "Tất cả", "Nhạc sống", "Sân khấu & Nghệ thuật", "Thể Thao", 
@@ -112,15 +75,13 @@ public class HomePanel extends JPanel {
             categoryBar.add(lblCat);
         }
         
-        searchContainer.add(categoryBar);
-        heroPanel.add(searchContainer);
-        add(heroPanel, BorderLayout.NORTH);
+        add(categoryBar, BorderLayout.NORTH); // Add Categories to Top
         
-        // --- 3. Main Content Area (Scrollable) ---
+        // --- Main Content Area (Scrollable) ---
         mainContainer = new JPanel();
         mainContainer.setLayout(new BoxLayout(mainContainer, BoxLayout.Y_AXIS));
         mainContainer.setBackground(ThemeColor.BG_MAIN);
-        mainContainer.setBorder(new EmptyBorder(20, 40, 40, 40));
+        mainContainer.setBorder(new EmptyBorder(10, 40, 40, 40));
         
         JScrollPane scrollPane = new JScrollPane(mainContainer);
         scrollPane.setBorder(null);
@@ -145,16 +106,16 @@ public class HomePanel extends JPanel {
             }
         }
         
-        performSearch();
+        performSearch(""); // Reset keyword on category change
     }
     
     public void loadEvents() {
         // Explicit reload
-        performSearch(); 
+        performSearch(""); 
     }
     
-    private void performSearch() {
-        String keyword = txtSearch.getText().trim();
+    public void performSearch(String keyword) {
+        String finalKeyword = (keyword == null) ? "" : keyword.trim();
         String category = selectedCategory;
         
         new Thread(() -> {
@@ -162,7 +123,7 @@ public class HomePanel extends JPanel {
             List<com.ticketbox.model.Showcase> showcases = new java.util.ArrayList<>();
             java.util.Set<Integer> showcasedEventIds = new java.util.HashSet<>();
             
-            if ("Tất cả".equals(category) && keyword.isEmpty()) {
+            if ("Tất cả".equals(category) && finalKeyword.isEmpty()) {
                 showcases = new com.ticketbox.dao.ShowcaseDAO().getActiveShowcasesWithEvents();
                 for (com.ticketbox.model.Showcase s : showcases) {
                     for (Event e : s.getEvents()) {
@@ -180,8 +141,8 @@ public class HomePanel extends JPanel {
             }
             
             // Filter by keyword if exists
-            if (!keyword.isEmpty()) {
-                 final String k = keyword.toLowerCase();
+            if (!finalKeyword.isEmpty()) {
+                 final String k = finalKeyword.toLowerCase();
                  events = events.stream()
                          .filter(e -> e.getName().toLowerCase().contains(k) 
                                    || (e.getLocation() != null && e.getLocation().toLowerCase().contains(k)))

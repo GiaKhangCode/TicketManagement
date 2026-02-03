@@ -15,6 +15,7 @@ public class Event {
     private String status; // PENDING, APPROVED, REJECTED
     private String imageUrl;
     private String category; // Added Category field
+    private String organizerName; // Transient, for display
 
     public Event() {}
 
@@ -50,6 +51,9 @@ public class Event {
 
     public int getOrganizerId() { return organizerId; }
     public void setOrganizerId(int organizerId) { this.organizerId = organizerId; }
+
+    public String getOrganizerName() { return organizerName; }
+    public void setOrganizerName(String organizerName) { this.organizerName = organizerName; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

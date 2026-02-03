@@ -67,7 +67,7 @@ public class EventDAO {
 
     public List<Event> getEventsByOrganizer(int organizerId) {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM EVENTS WHERE ORGANIZER_ID = ? ORDER BY START_TIME DESC";
+        String sql = "SELECT E.*, U.FULL_NAME as ORGANIZER_NAME FROM EVENTS E JOIN USERS U ON E.ORGANIZER_ID = U.ID WHERE E.ORGANIZER_ID = ? ORDER BY E.START_TIME DESC";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
@@ -85,7 +85,7 @@ public class EventDAO {
     
     public List<Event> getAllApprovedEvents() {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM EVENTS WHERE STATUS = 'APPROVED' ORDER BY START_TIME";
+        String sql = "SELECT E.*, U.FULL_NAME as ORGANIZER_NAME FROM EVENTS E JOIN USERS U ON E.ORGANIZER_ID = U.ID WHERE E.STATUS = 'APPROVED' ORDER BY E.START_TIME";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             ResultSet rs = pstmt.executeQuery();
@@ -99,7 +99,7 @@ public class EventDAO {
     }
     public List<Event> getAllEvents() {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM EVENTS ORDER BY START_TIME DESC";
+        String sql = "SELECT E.*, U.FULL_NAME as ORGANIZER_NAME FROM EVENTS E JOIN USERS U ON E.ORGANIZER_ID = U.ID ORDER BY E.START_TIME DESC";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             ResultSet rs = pstmt.executeQuery();
@@ -173,7 +173,7 @@ public class EventDAO {
     }
     public List<Event> getPendingEvents() {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM EVENTS WHERE STATUS = 'PENDING' ORDER BY START_TIME";
+        String sql = "SELECT E.*, U.FULL_NAME as ORGANIZER_NAME FROM EVENTS E JOIN USERS U ON E.ORGANIZER_ID = U.ID WHERE E.STATUS = 'PENDING' ORDER BY E.START_TIME";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             ResultSet rs = pstmt.executeQuery();
@@ -187,7 +187,7 @@ public class EventDAO {
     }
     public List<Event> searchApprovedEvents(String keyword) {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM EVENTS WHERE STATUS = 'APPROVED' AND (LOWER(NAME) LIKE ? OR LOWER(LOCATION) LIKE ?) ORDER BY START_TIME";
+        String sql = "SELECT E.*, U.FULL_NAME as ORGANIZER_NAME FROM EVENTS E JOIN USERS U ON E.ORGANIZER_ID = U.ID WHERE E.STATUS = 'APPROVED' AND (LOWER(E.NAME) LIKE ? OR LOWER(E.LOCATION) LIKE ?) ORDER BY E.START_TIME";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
@@ -208,7 +208,7 @@ public class EventDAO {
     public List<Event> getEventsByCategory(String category) {
         List<Event> events = new ArrayList<>();
         // Handle "Khác" or "Thể loại khác" mapping if needed, but UI sends exact string.
-        String sql = "SELECT * FROM EVENTS WHERE STATUS = 'APPROVED' AND CATEGORY = ? ORDER BY START_TIME";
+        String sql = "SELECT E.*, U.FULL_NAME as ORGANIZER_NAME FROM EVENTS E JOIN USERS U ON E.ORGANIZER_ID = U.ID WHERE E.STATUS = 'APPROVED' AND E.CATEGORY = ? ORDER BY E.START_TIME";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
@@ -224,7 +224,7 @@ public class EventDAO {
     }
 
     public Event getEventByScheduleId(int scheduleId) {
-        String sql = "SELECT E.* FROM EVENTS E JOIN EVENT_SCHEDULES S ON E.ID = S.EVENT_ID WHERE S.ID = ?";
+        String sql = "SELECT E.*, U.FULL_NAME as ORGANIZER_NAME FROM EVENTS E JOIN USERS U ON E.ORGANIZER_ID = U.ID JOIN EVENT_SCHEDULES S ON E.ID = S.EVENT_ID WHERE S.ID = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
@@ -255,6 +255,11 @@ public class EventDAO {
         e.setStatus(rs.getString("STATUS")); 
         e.setImageUrl(rs.getString("IMAGE_URL"));
         e.setCategory(rs.getString("CATEGORY"));
+        try {
+            e.setOrganizerName(rs.getString("ORGANIZER_NAME"));
+        } catch (SQLException ex) {
+            // Ignore if column not found (e.g. simple select) - though we tried to update all
+        }
         
         // Populate schedules
         e.setSchedules(scheduleDAO.getByEventId(e.getId()));

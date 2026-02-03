@@ -14,12 +14,17 @@ public class Ticket {
     private String ticketTypeName;
     private double price;
 
+    private boolean isResale;
+    private double resalePrice;
+
     public Ticket() {}
 
     public Ticket(int ticketTypeId, String qrCode) {
         this.ticketTypeId = ticketTypeId;
         this.qrCode = qrCode;
         this.status = "VALID";
+        this.isResale = false;
+        this.resalePrice = 0.0;
     }
 
     // Getters and Setters
@@ -33,6 +38,10 @@ public class Ticket {
     public void setQrCode(String qrCode) { this.qrCode = qrCode; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public boolean isIsResale() { return isResale; }
+    public void setIsResale(boolean isResale) { this.isResale = isResale; }
+    public double getResalePrice() { return resalePrice; }
+    public void setResalePrice(double resalePrice) { this.resalePrice = resalePrice; }
 
     public String getEventName() { return eventName; }
     public void setEventName(String eventName) { this.eventName = eventName; }

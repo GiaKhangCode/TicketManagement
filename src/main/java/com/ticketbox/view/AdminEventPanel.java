@@ -76,13 +76,28 @@ public class AdminEventPanel extends JPanel {
         add(headerPanel, BorderLayout.NORTH);
 
         // 2. Table
-        String[] columnNames = {"ID", "Tên Sự Kiện", "ID BTC", "Địa điểm", "Bắt đầu", "Trạng thái"};
+        String[] columnNames = {"ID", "Tên Sự Kiện", "Tên BTC", "Địa điểm", "Bắt đầu", "Trạng thái"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
         table = new JTable(tableModel);
         TableStyler.applyStyle(table);
         table.getColumnModel().getColumn(5).setCellRenderer(new TableStyler.StatusColumnRenderer());
+        
+        // Resize ID column
+        table.getColumnModel().getColumn(0).setPreferredWidth(40);
+        table.getColumnModel().getColumn(0).setMaxWidth(60);
+        
+        // Resize Status column (Col 5)
+        table.getColumnModel().getColumn(5).setPreferredWidth(100);
+        table.getColumnModel().getColumn(5).setMaxWidth(120);
+        
+        // Resize Start Time column (Col 4)
+        table.getColumnModel().getColumn(4).setPreferredWidth(130);
+        table.getColumnModel().getColumn(4).setMaxWidth(150);
+        
+        // Expand Event Name (Col 1)
+        table.getColumnModel().getColumn(1).setPreferredWidth(300);
         
         JPanel tableWrapper = new JPanel(new BorderLayout());
         tableWrapper.setBackground(ThemeColor.BG_MAIN);
@@ -108,9 +123,11 @@ public class AdminEventPanel extends JPanel {
         if (tableModel != null) {
             tableModel.setRowCount(0);
             allEvents = eventDAO.getAllEvents(); 
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
             for (Event e : allEvents) {
+                String timeStr = e.getStartTime() != null ? sdf.format(e.getStartTime()) : "";
                 tableModel.addRow(new Object[]{
-                    e.getId(), e.getName(), e.getOrganizerId(), e.getLocation(), e.getStartTime(), e.getStatus()
+                    e.getId(), e.getName(), e.getOrganizerName(), e.getLocation(), timeStr, e.getStatus()
                 });
             }
         }

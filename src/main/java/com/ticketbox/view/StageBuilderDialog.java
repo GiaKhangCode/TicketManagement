@@ -27,6 +27,7 @@ public class StageBuilderDialog extends JDialog {
     private JTextField txtLabel;
     private JComboBox<TicketType> cboTicketType;
     private JPanel colorPreview;
+    private JSpinner spinFontSize; // New component
     private String selectedColorHex = "#3B82F6";
 
     public StageBuilderDialog(Window owner, Event event) {
@@ -59,6 +60,12 @@ public class StageBuilderDialog extends JDialog {
         JToggleButton btnRect = createToolButton("Hình Vuông", false);
         btnRect.addActionListener(e -> canvas.setTool(StageCanvas.ToolType.DRAW_RECT));
         
+        JToggleButton btnText = createToolButton("Chèn Chữ", false);
+        btnText.addActionListener(e -> {
+             canvas.setTool(StageCanvas.ToolType.DRAW_TEXT);
+             JOptionPane.showMessageDialog(this, "Click vào vị trí trên sơ đồ để chèn chữ.", "Hướng dẫn", JOptionPane.INFORMATION_MESSAGE);
+        });
+        
         JToggleButton btnOval = createToolButton("Hình Tròn", false);
         btnOval.addActionListener(e -> canvas.setTool(StageCanvas.ToolType.DRAW_OVAL));
         
@@ -72,12 +79,14 @@ public class StageBuilderDialog extends JDialog {
         });
         
         toolGroup.add(btnSelect);
+        toolGroup.add(btnText);
         toolGroup.add(btnRect);
         toolGroup.add(btnOval);
         toolGroup.add(btnSector); // Add
         toolGroup.add(btnPoly);
         
         toolbar.add(btnSelect);
+        toolbar.add(btnText);
         toolbar.add(btnRect);
         toolbar.add(btnOval);
         toolbar.add(btnSector); // Add
@@ -133,6 +142,9 @@ public class StageBuilderDialog extends JDialog {
         txtLabel.getDocument().addDocumentListener(new SimpleDocumentListener(() -> {
             if (canvas.getSelectedZone() != null) {
                 canvas.getSelectedZone().setLabel(txtLabel.getText());
+                if ("TEXT".equals(canvas.getSelectedZone().getShapeType())) {
+                    canvas.recalculateTextBounds(canvas.getSelectedZone());
+                }
                 canvas.repaint();
             }
         }));
@@ -154,8 +166,26 @@ public class StageBuilderDialog extends JDialog {
         gbc.gridy = 4;
         propsPanel.add(cboTicketType, gbc);
         
-        // Color Picker
+        // Font Size (For Text Mode)
         gbc.gridy = 5;
+        propsPanel.add(createLabel("Cỡ chữ:"), gbc);
+        
+        spinFontSize = new JSpinner(new SpinnerNumberModel(12, 8, 100, 1));
+        spinFontSize.addChangeListener(e -> {
+             int val = (int) spinFontSize.getValue();
+             canvas.setDefaultFontSize(val); // Update default for new texts
+             
+             if (canvas.getSelectedZone() != null && "TEXT".equals(canvas.getSelectedZone().getShapeType())) {
+                 canvas.getSelectedZone().setFontSize(val);
+                 canvas.recalculateTextBounds(canvas.getSelectedZone());
+                 canvas.repaint();
+             }
+        });
+        gbc.gridy = 6;
+        propsPanel.add(spinFontSize, gbc);
+        
+        // Color Picker
+        gbc.gridy = 7;
         propsPanel.add(createLabel("Màu sắc:"), gbc);
         
         JPanel colorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -186,11 +216,11 @@ public class StageBuilderDialog extends JDialog {
         colorRow.add(Box.createHorizontalStrut(10));
         colorRow.add(btnPickColor);
         
-        gbc.gridy = 6;
+        gbc.gridy = 8;
         propsPanel.add(colorRow, gbc);
         
         // Info text
-        gbc.gridy = 7; 
+        gbc.gridy = 9; 
         gbc.weighty = 1.0; gbc.anchor = GridBagConstraints.NORTH;
         JTextArea txtInfo = new JTextArea("Hướng dẫn:\n- Kéo thả để di chuyển\n- Kéo góc dưới phải để thay đổi kích thước\n- Nhập tên và chọn loại vé để lưu thông tin.");
         txtInfo.setWrapStyleWord(true);
@@ -267,6 +297,13 @@ public class StageBuilderDialog extends JDialog {
             txtLabel.setText("");
             cboTicketType.setEnabled(false);
             cboTicketType.setSelectedIndex(0);
+            
+            // Enable Font Size if Text Tool is active
+            if (canvas.getTool() == StageCanvas.ToolType.DRAW_TEXT) {
+                spinFontSize.setEnabled(true);
+            } else {
+                spinFontSize.setEnabled(false);
+            }
             return;
         }
         
@@ -284,6 +321,16 @@ public class StageBuilderDialog extends JDialog {
                 cboTicketType.setSelectedIndex(i);
                 break;
             }
+        }
+        
+        // Toggle controls based on type
+        if ("TEXT".equals(z.getShapeType())) {
+            cboTicketType.setEnabled(false); // Text doesn't have ticket type/price
+            spinFontSize.setEnabled(true);
+            spinFontSize.setValue(z.getFontSize() > 0 ? z.getFontSize() : 12);
+        } else {
+            cboTicketType.setEnabled(true);
+            spinFontSize.setEnabled(false); // Only text has font size
         }
     }
     

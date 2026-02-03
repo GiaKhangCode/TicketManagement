@@ -240,16 +240,47 @@ public class MyTicketsPanel extends JPanel {
         content.add(Box.createVerticalStrut(20));
         
         for (Ticket t : tickets) {
-            JPanel tPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            JPanel tPanel = new JPanel(new BorderLayout());
             tPanel.setBackground(ThemeColor.BG_CARD);
-            tPanel.setBorder(BorderFactory.createLineBorder(new Color(63, 63, 70)));
-            tPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+            tPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(63, 63, 70)),
+                new EmptyBorder(10, 10, 10, 10)
+            ));
+            tPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
             
             JLabel lblQr = new JLabel("🎫 Code: " + t.getQrCode());
             lblQr.setFont(new Font("Monospaced", Font.BOLD, 16));
             lblQr.setForeground(ThemeColor.ACCENT);
             
-            tPanel.add(lblQr);
+            tPanel.add(lblQr, BorderLayout.WEST);
+            
+            // Status/Resell Button
+            JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            actionPanel.setOpaque(false);
+            
+            if ("USED".equals(t.getStatus())) {
+                JLabel lblUsed = new JLabel("Đã sử dụng");
+                lblUsed.setForeground(ThemeColor.TEXT_SECONDARY);
+                actionPanel.add(lblUsed);
+            } else {
+                JButton btnResell = new JButton(t.isIsResale() ? "Đang bán: " + String.format("%,.0f", t.getResalePrice()) : "Bán lại");
+                btnResell.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                btnResell.setBackground(t.isIsResale() ? ThemeColor.ACCENT : ThemeColor.SECONDARY);
+                btnResell.setForeground(Color.WHITE);
+                
+                btnResell.addActionListener(e -> {
+                    ResellDialog dlg = new ResellDialog(SwingUtilities.getWindowAncestor(this), t);
+                    dlg.setVisible(true);
+                    if (dlg.isUpdated()) {
+                        detailDialog.dispose();
+                        loadData(); // Refresh main list
+                    }
+                });
+                actionPanel.add(btnResell);
+            }
+            
+            tPanel.add(actionPanel, BorderLayout.EAST);
+            
             content.add(tPanel);
             content.add(Box.createVerticalStrut(10));
         }
